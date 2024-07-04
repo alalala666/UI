@@ -1,0 +1,31 @@
+<?xml version='1.0' encoding='utf-8'?>
+<config>
+  <classification>
+    <project_name>CAT_DOG</project_name>
+    <dataset_path0>cats_and_dogs</dataset_path0>
+    <dataset_path1 />
+    <network>vit</network>
+    <Attention>False</Attention>
+    <train_type>finetune</train_type>
+    <batch_size>16</batch_size>
+    <k>5</k>
+    <Earlystop_Epoch>10</Earlystop_Epoch>
+    <Earlystop_validate>0.01</Earlystop_validate>
+    <Learning_rate>0.01</Learning_rate>
+    <Optimizer>SGD</Optimizer>
+
+  </classification>
+  
+  <retrieval>
+    <retrieve>False</retrieve>
+    <target_dataset>C:/Users/yccha/Downloads/shauyu/UI/cats_and_dogs</target_dataset>
+    <query_dataset>C:/Users/yccha/Downloads/shauyu/UI/cats_and_dogs</query_dataset>
+    <make_query_imgs>False</make_query_imgs>
+    <inference>False</inference>
+    <answer />
+  </retrieval>
+
+   <ML>
+    <model>NULL</model>
+  </ML>
+</config>
