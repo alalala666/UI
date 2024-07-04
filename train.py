@@ -629,14 +629,33 @@ class CBMIR():
                     check_calculation_map[id % 5] += 1
 
             return "end two_img_make_input_csv"
-        
+         
+        def move_sheet_to_first(excel_name, sheet_name):
+            """
+            將指定的工作表移動到第一個位置並保存 Excel 文件。
+
+            :param excel_name: Excel 文件的路徑
+            :param sheet_name: 要移動的工作表名稱
+            """
+            # 加載 Excel 文件
+            workbook = openpyxl.load_workbook(excel_name)
+
+            # 判斷工作表是否存在
+            if sheet_name in workbook.sheetnames:
+                # 移動工作表到第一位
+                move_sheet = workbook[sheet_name]
+                workbook._sheets.insert(0, workbook._sheets.pop(workbook._sheets.index(move_sheet)))
+
+                # 保存 Excel 文件
+                workbook.save(excel_name)
+            else:
+                print(f"工作表 '{sheet_name}' 不存在於文件中.")
+
         #----------------------------------------
         #----訓練前準備
         # 建立資料夾並列印檢索結果標頭
         #----------------------------------------
-        
-        
-        
+
         if self.test_mode == True:self.max_epoch = 2
         if self.model_listt == ['all']:self.model_listt =['swin','vit','densenet']
         if self.train_typee == ['all']:self.train_typee =['finetune','trainfromscratch']
@@ -788,12 +807,13 @@ class CBMIR():
 
 
                 xlsx_path = self.project_name + '\Classification.xlsx'
+                wb = openpyxl.load_workbook(xlsx_path, data_only=True)
                 # 判斷檔案是否存在
                 if not os.path.exists(xlsx_path):
                     openpyxl.Workbook().save(xlsx_path)
                 if 'Mean' not in wb.sheetnames:
                     openpyxl.Workbook().save(xlsx_path)
-                    wb = openpyxl.load_workbook(xlsx_path, data_only=True)
+                    
                     wb.create_sheet('Mean')
                     wb.create_sheet('Std')     # 新增工作表 3
                     wb['Mean'].append([i for i in mean_data])
@@ -807,6 +827,10 @@ class CBMIR():
                     wb['Mean'].append([str(mean_data[i][0]) for i in mean_data])
                     wb['Std'].append([str(std_data[i][0]) for i in std_data])
                 wb.save(xlsx_path)
+
+        move_sheet_to_first(xlsx_path, 'Mean')
+        move_sheet_to_first(xlsx_path, 'Std')
+
 
         shutil.rmtree(self.project_name+'/temp')
 #################################################### 0704 ################################
@@ -2035,12 +2059,12 @@ if __name__ == '__main__':
     #shutil.rmtree('CAT_DOG')        
     cb =CBMIR()
     cb.fast_loader = not True
-    cb.input_two_img =   not True
+    cb.input_two_img =  not True
     cb.test_mode =   True
     cb.data_path = 'cats_and_dogs'
     cb.path_listt = ['cats_and_dogs']
     cb.batch_size = 2 ** 4
-    cb.model_listt = ['vit']
+    cb.model_listt = ['vit','swin','densenet']
     cb.train_typee = ['finetune']
     cb.project_name = 'CAT_DOG'
     cb.max_epoch = 2
