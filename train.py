@@ -58,7 +58,7 @@ from utils.vaild import evaluation_index  # 從自訂模組匯入評估指標計
 from utils.draw_roc import draw_roc,draw_Multiclass_ROC  # 從自訂模組匯入繪製 ROC 曲線函式
 from utils.CustomDataset import customDataset,two_img_customDataset  # 從自訂模組匯入自訂資料集類別
 from utils.cal_time import cal_time  # 從自訂模組匯入時間計算函式
-from utils.make_input_csv import MAKE_CLASSIFICATION_DATASET  # 從自訂模組匯入時間計算函式
+from utils.make_input_csv import MAKE_CLASSIFICATION_DATASET,MAKE_INFERENCE_DATASET  # 從自訂模組匯入時間計算函式
 from torch.utils.data import DataLoader
 import pandas as pd
 import ast
@@ -1850,51 +1850,10 @@ class CBMIR():
                                 multi_ML(data_path = data_path + '/'+ csv_path,model_name = model[0],model = model[1],k = 5,save_path=save_path + '/'+ csv_path)
     
     def inference(self,model_path,dataset_path):
-        #
-
-        def make_input_csv(path = 'data'):
-            #檢查dataset_detail.csv是否做過了
-            # detail_csv_path = dataset_path +'_dataset_detail.csv'
-            # if os.path.exists(detail_csv_path):
-            #     return 'data exist'
-                 
-
-            #寫title
-            dataset_pathh = str(dataset_path).split('/')[-1]
-            for category_id,dataset in enumerate(os.listdir(path)):
-                #for category_id,category in enumerate(os.listdir(path + '/' + dataset)):
-                    detail_csv_path = self.project_name +'/' + dataset_pathh + '_dataset_detail.csv'
-                    csv.writer(open(detail_csv_path, 'w', newline='')).writerow(['class_num',category_id+1,'dataset_path',path + '/' + dataset])
-                
-            csv.writer(open(detail_csv_path, 'a+', newline='')).writerow(['5-fold : ']) # make title and init csv
-            
-            csv_path =  self.project_name +'/' +dataset_pathh+ '_dataset.csv'
-            detail_csv_path =  self.project_name +'/' +dataset_pathh+ '_dataset_detail.csv'
-            csv.writer(open(csv_path, 'w', newline='')).writerow(["category", "set", "img_path"]) # make title and init csv
-            countt = 0
-            for category_id,category in enumerate(os.listdir(path)):
-                    check_calculation_map = {} #check every category of balance
-                    for count, img in enumerate(os.listdir(path + '/' +category)):#Using enumerate  to easily divide the set
-                        countt += 1
-            mission = tqdm(total=(countt))  
-            for category_id,category in enumerate(os.listdir(path)):
-                    check_calculation_map = {} #check every category of balance
-                    for count, img in enumerate(os.listdir(path + '/' +category)):#Using enumerate  to easily divide the set
-                        mission.update()
-                        img_path = (path +  '/' + category + '/' + img)
-                        #print((path + '/' + dataset + '/' + path + '/' + category + '/' + img))
-
-                        csv.writer(open(csv_path, 'a+', newline='')).writerow([category_id, count % 5, img_path])
-                    
-                        # Check calculation
-                        check_calculation_map.setdefault(count % 5, 0)
-                        check_calculation_map[count % 5] += 1
-                    csv.writer(open(detail_csv_path, 'a+', newline='')).writerow([category, check_calculation_map])    
-                    # print(check_calculation_map)
-
-        print('make_input_csv')  
-        make_input_csv(path = dataset_path)
-               
+       
+        datamaker = MAKE_INFERENCE_DATASET(self.data_path,self.project_name)
+        datamaker.make_input_excel()
+        datamaker.save_sheet_as_csv('inference_dataset', self.project_name + '/temp/inference_dataset.csv')               
 
         #model = torch.load(model_path)
         dataset = ''
@@ -1902,9 +1861,9 @@ class CBMIR():
         # for i in os.listdir(dataset_path):
         #     dataset=i
         #     break
-        input_csv_path = self.project_name +'/' +dataset + '_dataset.csv'
-        df = pd.read_csv(input_csv_path,encoding='unicode_escape')
-        valid_loader = DataLoader(customDataset(df, shuffle = True), batch_size=1)
+        input_csv_path = self.project_name + '/temp/inference_dataset.csv'
+        df = pd.read_csv(input_csv_path)
+        valid_loader = DataLoader(customDataset(df, shuffle = True,pathColumn0=1), batch_size=1)
         model = torch.load(model_path).cuda()
         model.eval()
         total_valid = 0
@@ -1921,10 +1880,10 @@ class CBMIR():
         for batch_idx, (name,data, target) in enumerate(valid_loader):
             sub_info = []
             model.eval()
-            data, target = Variable(data), Variable(target) 
+            data, target = Variable(data), (target)[0] 
             
             if torch.cuda.is_available():
-                data, target = data.cuda(), target.cuda()
+                data, target = data.cuda(), target#.cuda()
 
             output = model(data)
 
@@ -1932,10 +1891,10 @@ class CBMIR():
             predict = torch.max(output.data, 1)[1]
             prob = torch.softmax(output, dim=1).view(output.shape[1])
             prob = prob.tolist()
-            total_valid += len(target)
-            correct_valid += sum((predict == target).float())
+            total_valid += 1#len(target)
+            correct_valid += sum((predict == int(target)).float())
 
-            y_true.extend(target.tolist())
+            y_true.extend((list([int(target)])))
             y_scores.extend(predict.tolist())
             y_prob.extend(prob)
 
@@ -2068,8 +2027,8 @@ if __name__ == '__main__':
     cb.train_typee = ['finetune']
     cb.project_name = 'CAT_DOG'
     cb.max_epoch = 2
-    cb.auto_train()
-    # cb.inference('NeckB_level1_4Position_result/finetune/NeckB_level1_4Position/vit/0.pth','NeckB_level1_4Position')
+    #cb.auto_train()
+    cb.inference('CAT_DOG/finetune/cats_and_dogs/vit/1.pth','cats_and_dogs')
     
     #cb.auto_train()
     # cb.inference('NeckB_level1_4Position_result/finetune/ViT_AttentionAdd\ViT_AttentionAdd/vit/0.pth',cb.data_path)
