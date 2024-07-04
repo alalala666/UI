@@ -413,15 +413,15 @@ class CBMIR():
             return valid_acc_.item(), valid_loss_,total_auc,total_specificity,total_sensitivity,total_ppv,total_npv
 
         def training_loop(model, train_loader, valid_loader, seconds, csv_name, num_epochs, batch_size,fold,save_path):
-            if not os.path.exists(csv_name):    
-                with open(csv_name, 'a+', newline='') as csvfile:
-                            writer = csv.writer (csvfile)
-                            writer.writerow(["fold", "num_epochs", 
-                                (str("train_acc_")),
-                                (str("train_loss_")),
-                                (str("valid_acc_")),
-                                (str("valid_loss_")),"specificity","sensitivity","ppv","npv","auc",
-                                "cost_time"])
+            # if not os.path.exists(csv_name):    
+            #     with open(csv_name, 'a+', newline='') as csvfile:
+            #                 writer = csv.writer (csvfile)
+            #                 writer.writerow(["fold", "num_epochs", 
+            #                     (str("train_acc_")),
+            #                     (str("train_loss_")),
+            #                     (str("valid_acc_")),
+            #                     (str("valid_loss_")),"specificity","sensitivity","ppv","npv","auc",
+            #                     "cost_time"])
             total_train_loss = []
             total_valid_loss = []
             total_train_accuracy = []
@@ -504,14 +504,42 @@ class CBMIR():
                # print("Early stopping",epoch,early_stopping.early_stop)
                
                 
-                with open(csv_name, 'a+', newline='') as csvfile:
-                        writer = csv.writer (csvfile)
-                        writer.writerow([fold, num_epochs, 
-                            (str(train_acc_)),
-                            (str(train_loss_))[:7],
-                            (str(valid_acc_)),
-                            (str(valid_loss_))[:7],specificity[-1],sensitivity[-1],ppv[-1],npv[-1],auc[-1],
-                            cost_time])
+                # with open(csv_name, 'a+', newline='') as csvfile:
+                #         writer = csv.writer (csvfile)
+                #         writer.writerow([fold, num_epochs, 
+                #             (str(train_acc_)),
+                #             (str(train_loss_))[:7],
+                #             (str(valid_acc_)),
+                #             (str(valid_loss_))[:7],specificity[-1],sensitivity[-1],ppv[-1],npv[-1],auc[-1],
+                #             cost_time])
+                data = {
+                    "fold": fold,
+                    "num_epochs": num_epochs,
+                    "train_acc_": str(train_acc_),
+                    "train_loss_": str(train_loss_)[:7],
+                    "valid_acc_": str(valid_acc_),
+                    "valid_loss_": str(valid_loss_)[:7],
+                    "specificity": specificity[-1],
+                    "sensitivity": sensitivity[-1],
+                    "ppv": ppv[-1],
+                    "npv": npv[-1],
+                    "auc": auc[-1],
+                    "cost_time": cost_time
+                }
+                xlsx_path = self.project_name + '\Classification.xlsx'
+                sheet_name = model_name
+
+                if not os.path.exists(xlsx_path):openpyxl.Workbook().save(xlsx_path)
+                
+                workbook = openpyxl.load_workbook(xlsx_path, data_only=True)
+                if sheet_name not in workbook.sheetnames:
+                    workbook.create_sheet(sheet_name)
+                    
+                    workbook[model_name].append([str(i) for i in data])
+                    workbook.save(xlsx_path)
+                    
+                workbook[model_name].append([str(data[i]) for i in data])
+                workbook.save(xlsx_path)
             print("====== END ==========")
 
 
@@ -550,57 +578,6 @@ class CBMIR():
         '''
         開始訓練
         '''
-        # def make_input_csv(dataset_path = 'data',project_name = str):
-        #     #self.project_name = 'test'
-        #     dataset = dataset_path.split('/')[-1]
-        #     #檢查dataset_detail.csv是否做過了
-        #     # for i in range(1):
-        #     #     for category_id,category in enumerate(os.listdir(path)):
-        #     #         detail_csv_path = self.project_name +'/'+dataset+  '_dataset_detail.csv'
-        #     #         if os.path.exists(detail_csv_path):
-        #     #             return 'data exist'
-        #     #         break
-        #     #     break
-            
-        #     img_count = 0
-        #     #寫title
-        #     for i in range(1):
-        #         for category_id,category in enumerate(os.listdir(dataset_path)):
-        #             detail_csv_path = self.project_name +'/'+dataset+  '_dataset_detail.csv'
-        #             csv.writer(open(detail_csv_path, 'w', newline='')).writerow(['class_num',len(os.listdir(path)),'dataset_path',path + '/' + dataset])
-        #             for count, img in enumerate(os.listdir(dataset_path + '/'  + category)):#Using enumerate  to easily divide the set
-        #                 img_count += 1
-        #         csv.writer(open(detail_csv_path, 'a+', newline='')).writerow(['5-fold : ']) # make title and init csv
-            
-            
-        #     for category_id,category in enumerate(os.listdir(dataset_path)):
-        #         print(category_id,category)
-        #     print("make_input_csv")
-        #     mission = tqdm(total=img_count)
-        #     for i in range(1):
-        #         csv_path = self.project_name +'/' +dataset + '_dataset.csv'
-        #         detail_csv_path = self.project_name +'/' +dataset + '_dataset_detail.csv'
-        #         csv.writer(open(csv_path, 'w', newline='')).writerow(["category", "set", "img_path"]) # make title and init csv
-                
-        #         for category_id,category in enumerate(os.listdir(dataset_path)):
-        #             check_calculation_map = {} #check every category of balance
-        #             #continue
-        #             for count, img in enumerate(os.listdir(dataset_path + '/'  + category)):#Using enumerate  to easily divide the set
-        #                 img_path = (path + '/'  + category + '/' + img)
-        #                 #print((path + '/'  '/' + path + '/' + category + '/' + img))
-
-        #                 csv.writer(open(csv_path, 'a+', newline='')).writerow([category_id, count % 5, img_path])
-                    
-        #                 # Check calculation
-        #                 check_calculation_map.setdefault(count % 5, 0)
-        #                 check_calculation_map[count % 5] += 1
-
-        #                 #time.sleep(0.01)
-        #                 mission.update()
-        #             csv.writer(open(detail_csv_path, 'a+', newline='')).writerow([category, check_calculation_map])    
-        #             # print(check_calculation_map)
-        #     return 'make_input_csv end'
-        
         def two_img_make_input_csv(path0 = '',path1 = ''):
             save_path = self.project_name
             # path0 = path0 +'/' + os.listdir(path0)[0]
@@ -677,29 +654,6 @@ class CBMIR():
                         save_pathh = os.path.join(self.project_name, train_type, path_list, model_list)
                         os.makedirs(save_pathh, exist_ok=True)
 
-                                       
-        # with open(self.project_name + '\mean.csv', 'w', newline='') as csvfile:
-        #     csv.writer(csvfile).writerow(["train_type",
-        #                                   "path_list",
-        #                                   "model_list",
-        #                                   "avg_train_acc",
-        #                                   "avg_test_acc","avg_specificity",
-        #                                   "avg_sensitivity",
-        #                                   "avg_ppv",
-        #                                   "avg_npv",
-        #                                   "avg_auc",
-        #                                   "cost_time"])
-        # with open(self.project_name + '\std.csv', 'w', newline='') as csvfile:
-        #     csv.writer(csvfile).writerow(["train_type",
-        #                                   "path_list",
-        #                                   "model_list",
-        #                                   "std_train_acc",
-        #                                   "std_test_acc","std_specificity",
-        #                                   "std_sensitivity",
-        #                                   "std_ppv",
-        #                                   "std_npv",
-        #                                   "std_auc",
-        #                                   "cost_time"])
         
         print('-----------------------make_input_csv-----------------------')  
         if self.input_two_img:
@@ -801,44 +755,14 @@ class CBMIR():
                             writer.add_scalar('train_Accuracy/train_fold'+str(k), float(total_train_accuracy[n_iter]), n_iter)
                             writer.add_scalar('test_Accuracy/test_fold'+str(k),float(total_valid_accuracy[n_iter]), n_iter)
                     writer.close()
-                    #寫入詳細資料
-                    # with open(self.project_name + '\mean.csv', 'a+', newline='') as csvfile:
-                    #      csv.writer(csvfile).writerow([self.train_typee[train_type],
-                    #                                     self.path_listt[path_list],
-                    #                                     self.model_listt[model_list],
-                    #                                     round(avg_train_acc,2),
-                    #                                     round(avg_test_acc,2),
-                    #                                     round(avg_specificity,2),
-                    #                                     round(avg_sensitivity,2),
-                    #                                     round(avg_ppv,2),
-                    #                                     round(avg_npv,2),
-                    #                                     round(avg_auc,2),
-                    #                                     (cost_time)])
-                    # with open(self.project_name + '\std.csv', 'a+', newline='') as csvfile:
-                    #      import numpy as np
-                    #      csv.writer(csvfile).writerow([self.train_typee[train_type],
-                    #                                     self.path_listt[path_list],
-                    #                                     self.model_listt[model_list],
-                    #                                     np.std(sd_train_acc),
-                    #                                     np.std(sd_test_acc),
-                    #                                     np.std(sd_specificity),
-                    #                                     np.std(sd_sensitivity),
-                    #                                     np.std(sd_ppv),
-                    #                                     np.std(sd_npv),
-                    #                                     np.std(sd_auc),
-                    #                                     ])
-#################################################### 0704 ################################
 
-                # 假設您的數據保存在以下變量中
-                train_typee = self.train_typee[train_type]
-                path_listt = self.path_listt[path_list]
-                model_listt = self.model_listt[model_list]
+#################################################### 0704 ################################
 
                 # 創建數據框架
                 mean_data = {
-                    "Train Type": [train_typee],
-                    "Path List": [path_listt],
-                    "Model List": [model_listt],
+                    "Train Type": [self.train_typee[train_type]],
+                    #"Path List": [path_listt],
+                    "Model List": [self.model_listt[model_list]],
                     "Avg Train Acc": [round(avg_train_acc, 2)],
                     "Avg Test Acc": [round(avg_test_acc, 2)],
                     "Avg Specificity": [round(avg_specificity, 2)],
@@ -850,9 +774,9 @@ class CBMIR():
                 }
 
                 std_data = {
-                    "Train Type": [train_typee],
-                    "Path List": [path_listt],
-                    "Model List": [model_listt],
+                    "Train Type": [self.train_typee[train_type]],
+                    #"Path List": [path_listt],
+                    "Model List": [self.model_listt[model_list]],
                     "Std Train Acc": [np.std(sd_train_acc)],
                     "Std Test Acc": [np.std(sd_test_acc)],
                     "Std Specificity": [np.std(sd_specificity)],
@@ -867,15 +791,19 @@ class CBMIR():
                 # 判斷檔案是否存在
                 if not os.path.exists(xlsx_path):
                     openpyxl.Workbook().save(xlsx_path)
+                if 'Mean' not in wb.sheetnames:
+                    openpyxl.Workbook().save(xlsx_path)
                     wb = openpyxl.load_workbook(xlsx_path, data_only=True)
                     wb.create_sheet('Mean')
                     wb.create_sheet('Std')     # 新增工作表 3
                     wb['Mean'].append([i for i in mean_data])
                     wb['Std'].append([i for i in std_data])
+                    
+                    wb.remove(wb['Sheet'])
                     wb.save(xlsx_path)
 
                 wb = openpyxl.load_workbook(xlsx_path, data_only=True)
-                if model_listt not in [cell.value for cell in wb['Mean']['C']]:
+                if self.model_listt[model_list] not in [cell.value for cell in wb['Mean']['C']]:
                     wb['Mean'].append([str(mean_data[i][0]) for i in mean_data])
                     wb['Std'].append([str(std_data[i][0]) for i in std_data])
                 wb.save(xlsx_path)
@@ -887,44 +815,7 @@ class CBMIR():
         print("-------------------------------------------------------")
         print("開始檢索")
         print("-------------------------------------------------------")
-        #self.path_listt=[self.data_path.split('/')[-1]]
-        # def make_input_csv(path = 'data',type_csv = 'query'):
-        #     #檢查dataset_detail.csv是否做過了
-        #     for dataset in os.listdir(path):
-        #         for category_id,category in enumerate(os.listdir(path + '/' + dataset)):
-        #             detail_csv_path = self.project_name +'/' + dataset + '_'+ type_csv + '_dataset_detail.csv'                
-        #             #csv.writer(open(csv_path, 'w', newline='')).writerow(["category", "set", "img_path"]) # make title and init csv
-        #             if os.path.exists(detail_csv_path):
-        #                 return 'data exist'
-        #             break
-        #         break
-
-        #     #寫title
-        #     for dataset in os.listdir(path):
-        #         for category_id,category in enumerate(os.listdir(path + '/' + dataset)):
-        #             detail_csv_path = self.project_name +'/' + dataset + '_'+ type_csv + '_dataset_detail.csv'    
-        #             csv.writer(open(detail_csv_path, 'w', newline='')).writerow(['class_num',category_id+1,'dataset_path',path + '/' + dataset])
                 
-        #     csv.writer(open(detail_csv_path, 'a+', newline='')).writerow(['5-fold : ']) # make title and init csv
-        #     for dataset in os.listdir(path):
-        #         csv_path = self.project_name +'/' + dataset + '_'+ type_csv + '_dataset.csv'
-        #         detail_csv_path = self.project_name +'/' + dataset + '_'+ type_csv + '_dataset_detail.csv'                
-        #         csv.writer(open(csv_path, 'w', newline='')).writerow(["category", "set", "img_path"]) # make title and init csv
-                
-        #         for category_id,category in enumerate(os.listdir(path + '/' + dataset)):
-        #             check_calculation_map = {} #check every category of balance
-        #             for count, img in enumerate(os.listdir(path + '/' + dataset + '/' + category)):#Using enumerate  to easily divide the set
-        #                 img_path = (path + '/' + dataset + '/' + category + '/' + img)
-        #                 #print((path + '/' + dataset + '/' + path + '/' + category + '/' + img))
-
-        #                 csv.writer(open(csv_path, 'a+', newline='')).writerow([category_id, count % 5, img_path])
-                    
-        #                 # Check calculation
-        #                 check_calculation_map.setdefault(count % 5, 0)
-        #                 check_calculation_map[count % 5] += 1
-        #             csv.writer(open(detail_csv_path, 'a+', newline='')).writerow([category, check_calculation_map])    
-        #             # print(check_calculation_map)
-        
         def make_input_csv(path = 'data',type_csv = 'query'):
             # self.project_name = 'test'
         
@@ -2140,7 +2031,8 @@ class CBMIR():
         plt.close('all')  
         pass #function fin    
 
-if __name__ == '__main__':          
+if __name__ == '__main__':  
+    #shutil.rmtree('CAT_DOG')        
     cb =CBMIR()
     cb.fast_loader = not True
     cb.input_two_img =   not True
