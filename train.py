@@ -193,7 +193,8 @@ class CBMIR():
                 # 保存 Excel 文件
                 workbook.save(excel_name)
             else:
-                print(f"工作表 '{sheet_name}' 不存在於文件中.")
+                pass
+                # print(f"工作表 '{sheet_name}' 不存在於文件中.")
     
     def print_parameters(self):
         print("test_mode:", self.test_mode)
@@ -2040,7 +2041,7 @@ class CBMIR():
         pass #function fin    
 
 if __name__ == '__main__':  
-    #shutil.rmtree('CAT_DOG')  
+    shutil.rmtree('CAT_DOG')  
     # shutil.rmtree('CAT_DOG/temp')  
     #shutil.move('CAT_DOG\CAT_DOG_dataset.xlsx')        
     cb =CBMIR()
@@ -2054,8 +2055,8 @@ if __name__ == '__main__':
     cb.train_typee = ['finetune']
     cb.project_name = 'CAT_DOG'
     cb.max_epoch = 2
-    #cb.auto_train()
-    #cb.inference('CAT_DOG/finetune/cats_and_dogs/vit/1.pth','C:/Users/yccha/Downloads/shauyu/git/UI/cats_and_dogs')
+    cb.auto_train()
+    cb.inference('CAT_DOG/finetune/cats_and_dogs/vit/1.pth','C:/Users/yccha/Downloads/shauyu/git/UI/cats_and_dogs')
 
     cb.query_path = cb.data_path
     cb.target_path = cb.data_path
