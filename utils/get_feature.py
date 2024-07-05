@@ -60,7 +60,7 @@ def vit_get_feature(pred_path,save_folder,model_path,k):
     feature_list = []
     input_csv_path = str(pred_path).split('*')[1]
     df = pd.read_csv(input_csv_path)
-    train_loader = DataLoader(customDataset(df, shuffle = False), batch_size=1)
+    train_loader = DataLoader(customDataset(df, shuffle = False,pathColumn0=1), batch_size=1)
     mission = tqdm(total=len(train_loader.dataset))
     for batch_idx, (name,data, target) in enumerate(train_loader):
 
@@ -69,11 +69,11 @@ def vit_get_feature(pred_path,save_folder,model_path,k):
         feature_list.append(img_feature)
         mission.update()
 
-        ##print(save_folder+'\\'+pred_path.split('_')[-2]+'_data.h5',batch_idx)
+        ##print(save_folder+'\\'+pred_path.split('_')[-2].split('/temp/')[-1]+'_data.h5',batch_idx)
                 
     #return 0
     #write in h5
-    with h5py.File(save_folder+'\\'+pred_path.split('_')[-2]+'_data.h5', 'w') as f:
+    with h5py.File(save_folder+'\\'+pred_path.split('_')[-2].split('/temp/')[-1]+'_data.h5', 'w') as f:
         f.create_dataset("path", data=img_list)
         f.create_dataset("feature", data=feature_list)
 
@@ -111,7 +111,7 @@ def swin_get_feature(pred_path,save_folder,model_path,k):
         feature_list = []
         input_csv_path = str(pred_path).split('*')[1]
         df = pd.read_csv(input_csv_path)
-        train_loader = DataLoader(customDataset(df, shuffle = False), batch_size=1)
+        train_loader = DataLoader(customDataset(df, shuffle = False,pathColumn0=1), batch_size=1)
         mission = tqdm(total=len(train_loader.dataset))
         for batch_idx, (name,data, target) in enumerate(train_loader):
             mission.update()
@@ -121,13 +121,13 @@ def swin_get_feature(pred_path,save_folder,model_path,k):
             feature_list.append(img_feature)
             #c.append(np.append(file_class,img_feature))
             #count += 1
-            ##print(save_folder+'\\'+pred_path.split('_')[-2]+'_data.h5',batch_idx)
+            ##print(save_folder+'\\'+pred_path.split('_')[-2].split('/temp/')[-1]+'_data.h5',batch_idx)
            
         
                     
         #return 0
         #write in h5
-        with h5py.File(save_folder+'\\'+pred_path.split('_')[-2]+'_data.h5', 'w') as f:
+        with h5py.File(save_folder+'\\'+pred_path.split('_')[-2].split('/temp/')[-1]+'_data.h5', 'w') as f:
             f.create_dataset("path", data=img_list)
             f.create_dataset("feature", data=feature_list)
 
@@ -168,7 +168,7 @@ def densenet_get_feature(pred_path,save_folder,model_path,k):
     feature_list = []
     input_csv_path = str(pred_path).split('*')[1]
     df = pd.read_csv(input_csv_path)
-    train_loader = DataLoader(customDataset(df, shuffle = False), batch_size=1)
+    train_loader = DataLoader(customDataset(df, shuffle = False,pathColumn0=1), batch_size=1)
     
     mission = tqdm(total=len(train_loader.dataset))
     for batch_idx, (name,data, target) in enumerate(train_loader):
@@ -179,10 +179,10 @@ def densenet_get_feature(pred_path,save_folder,model_path,k):
         feature_list.append(img_feature)
         #c.append(np.append(file_class,img_feature))
         #count += 1
-        ##print(save_folder+'\\'+pred_path.split('_')[-2]+'_data.h5',batch_idx)
+        ##print(save_folder+'\\'+pred_path.split('_')[-2].split('/temp/')[-1]+'_data.h5',batch_idx)
         
     #return 0
     #write in h5
-    with h5py.File(save_folder+'\\'+pred_path.split('_')[-2]+'_data.h5', 'w') as f:
+    with h5py.File(save_folder+'\\'+pred_path.split('_')[-2].split('/temp/')[-1]+'_data.h5', 'w') as f:
         f.create_dataset("path", data=img_list)
         f.create_dataset("feature", data=feature_list)

@@ -58,7 +58,7 @@ from utils.vaild import evaluation_index  # 從自訂模組匯入評估指標計
 from utils.draw_roc import draw_roc,draw_Multiclass_ROC  # 從自訂模組匯入繪製 ROC 曲線函式
 from utils.CustomDataset import customDataset,two_img_customDataset  # 從自訂模組匯入自訂資料集類別
 from utils.cal_time import cal_time  # 從自訂模組匯入時間計算函式
-from utils.make_input_csv import MAKE_CLASSIFICATION_DATASET,MAKE_INFERENCE_DATASET  # 從自訂模組匯入時間計算函式
+from utils.make_input_csv import MAKE_CLASSIFICATION_DATASET,MAKE_INFERENCE_DATASET,MAKE_RETRIEVAL_DATASET  # 從自訂模組匯入時間計算函式
 from torch.utils.data import DataLoader
 import pandas as pd
 import ast
@@ -172,6 +172,29 @@ class CBMIR():
 
         self.input_two_img = False
         self.fast_loader = False
+    
+    @staticmethod
+    def move_sheet_to_first(excel_name, sheet_name):
+            """
+            將指定的工作表移動到第一個位置並保存 Excel 文件。
+
+            :param excel_name: Excel 文件的路徑
+            :param sheet_name: 要移動的工作表名稱
+            """
+            # 加載 Excel 文件
+            workbook = openpyxl.load_workbook(excel_name)
+
+            # 判斷工作表是否存在
+            if sheet_name in workbook.sheetnames:
+                # 移動工作表到第一位
+                move_sheet = workbook[sheet_name]
+                workbook._sheets.insert(0, workbook._sheets.pop(workbook._sheets.index(move_sheet)))
+
+                # 保存 Excel 文件
+                workbook.save(excel_name)
+            else:
+                print(f"工作表 '{sheet_name}' 不存在於文件中.")
+    
     def print_parameters(self):
         print("test_mode:", self.test_mode)
         # print("repeat_times:", self.repeat_times)
@@ -630,26 +653,7 @@ class CBMIR():
 
             return "end two_img_make_input_csv"
          
-        def move_sheet_to_first(excel_name, sheet_name):
-            """
-            將指定的工作表移動到第一個位置並保存 Excel 文件。
-
-            :param excel_name: Excel 文件的路徑
-            :param sheet_name: 要移動的工作表名稱
-            """
-            # 加載 Excel 文件
-            workbook = openpyxl.load_workbook(excel_name)
-
-            # 判斷工作表是否存在
-            if sheet_name in workbook.sheetnames:
-                # 移動工作表到第一位
-                move_sheet = workbook[sheet_name]
-                workbook._sheets.insert(0, workbook._sheets.pop(workbook._sheets.index(move_sheet)))
-
-                # 保存 Excel 文件
-                workbook.save(excel_name)
-            else:
-                print(f"工作表 '{sheet_name}' 不存在於文件中.")
+        
 
         #----------------------------------------
         #----訓練前準備
@@ -828,8 +832,8 @@ class CBMIR():
                     wb['Std'].append([str(std_data[i][0]) for i in std_data])
                 wb.save(xlsx_path)
 
-        move_sheet_to_first(xlsx_path, 'Mean')
-        move_sheet_to_first(xlsx_path, 'Std')
+        self.move_sheet_to_first(xlsx_path, 'Mean')
+        self.move_sheet_to_first(xlsx_path, 'Std')
 
 
         shutil.rmtree(self.project_name+'/temp')
@@ -839,48 +843,16 @@ class CBMIR():
         print("-------------------------------------------------------")
         print("開始檢索")
         print("-------------------------------------------------------")
-                
-        def make_input_csv(path = 'data',type_csv = 'query'):
-            # self.project_name = 'test'
-        
-            dataset = path.split('/')[-1]
-            #檢查dataset_detail.csv是否做過了
-            for i in range(1):
-                for category_id,category in enumerate(os.listdir(path)):
-                    detail_csv_path = self.project_name +'/' + dataset + '_'+ type_csv + '_dataset_detail.csv'                
-                    #csv.writer(open(csv_path, 'w', newline='')).writerow(["category", "set", "img_path"]) # make title and init csv
-                    if os.path.exists(detail_csv_path):
-                        return 'data exist'
-                    break
-                break
-            #寫title
-            for i in range(1):
-                for category_id,category in enumerate(os.listdir(path)):
-                    detail_csv_path = self.project_name +'/' + dataset + '_'+ type_csv + '_dataset_detail.csv'    
-                    csv.writer(open(detail_csv_path, 'w', newline='')).writerow(['class_num',category_id+1,'dataset_path',path])
-                
-            csv.writer(open(detail_csv_path, 'a+', newline='')).writerow(['5-fold : ']) # make title and init csv
-            for i in range(1):
-                csv_path = self.project_name +'/' + dataset + '_'+ type_csv + '_dataset.csv'
-                detail_csv_path = self.project_name +'/' + dataset + '_'+ type_csv + '_dataset_detail.csv'                
-                csv.writer(open(csv_path, 'w', newline='')).writerow(["category", "set", "img_path"]) # make title and init csv
-                
-                for category_id,category in enumerate(os.listdir(path)):
-                    check_calculation_map = {} #check every category of balance
-                    for count, img in enumerate(os.listdir(path + '/' + category)):#Using enumerate  to easily divide the set
-                        img_path = (path + '/' + category + '/' + img)
-                        #print((path + '/' + path + '/' + category + '/' + img)
-                        csv.writer(open(csv_path, 'a+', newline='')).writerow([category_id, count % 5, img_path])
-                    
-                        # Check calculation
-                        check_calculation_map.setdefault(count % 5, 0)
-                        check_calculation_map[count % 5] += 1
-                    csv.writer(open(detail_csv_path, 'a+', newline='')).writerow([category, check_calculation_map])    
-                    # print(check_calculation_map
-        print("make_query_input_csv")
-        make_input_csv(self.query_path,'query')
+              
         print("make_target_input_csv")
-        make_input_csv(self.target_path,'target')
+       
+        datamaker = MAKE_RETRIEVAL_DATASET(self.query_path,self.project_name,'query')
+        datamaker.make_input_excel()
+        datamaker.save_sheet_as_csv('query_dataset', self.project_name + '/temp/query_dataset.csv')
+
+        datamaker = MAKE_RETRIEVAL_DATASET(self.target_path,self.project_name,'target')
+        datamaker.make_input_excel()
+        datamaker.save_sheet_as_csv('target_dataset', self.project_name + '/temp/target_dataset.csv')
         print("start:")
         
         if self.model_listt == ['all']:
@@ -914,7 +886,36 @@ class CBMIR():
             #----------------------------------------------------------
             #              input feature and path
             #----------------------------------------------------------
+            output_excel_path = self.project_name + '/Retrival.xlsx'
+            sheetname = save_path#.replace('\\','_')
+            # 將字串分割為列表
+            parts = sheetname.split('\\')
+
+            # 選取需要的部分 (第 2、5、6 個元素)
+            selected_parts = [parts[1].split('_')[0], parts[3], parts[4]]
+
+            # 將選取的部分重新組合為字串
+            sheetname = '_'.join(selected_parts)
+            # 創建一個新的工作簿和工作表
+            if not os.path.exists(output_excel_path):
+                openpyxl.Workbook().save(output_excel_path)
+                # wb = openpyxl.load_workbook(output_excel_path, data_only=True)
+                # wb.create_sheet('Summary')
+                # wb.save(output_excel_path)
+            wb = openpyxl.load_workbook(output_excel_path, data_only=True)
+            if 'Summary' not in wb.sheetnames:wb.create_sheet('Summary')
+            wb.create_sheet(sheetname)
             
+
+            
+            
+            if 'Sheet'  in wb.sheetnames:wb.remove(wb['Sheet'])   
+
+
+
+            ws = wb[sheetname]
+            # 添加表頭
+            ws.append(['precision','category','path'])
             
             feature_list = []
             feature_path = []
@@ -982,33 +983,44 @@ class CBMIR():
                 relevant = 0 
                 #印出top-n串列
                 for i in top_list:
-                    if (str(query_path).split('/')[-2]) == (str(top_list[i]).split('/')[-2]):
+                    if (str(query_path).split('\\\\')[-2]) == (str(top_list[i]).split('\\\\')[-2]):
                         relevant = relevant + 1
-                    topk.append(str(top_list[i]).split('/')[-2])
+                    topk.append(str(top_list[i]).split('\\\\')[-2])
                     topk_path.append(str(top_list[i]))
                     #print(top_list[i])
                     
                 #print(save_pathh,relevant,top)
                 ap = relevant/top
-                # print(save_path.split("\\")[-3:-2])
-                # print(query_path)
-                # print('ap:',ap)
                 mAP += ap/len(query_list)
                 #write in csv 
                 with open(save_path, 'a+', newline='') as csvfile:
                     writer = csv.writer(csvfile)
-                    writer.writerow([ap,(str(query_path).split('/')[-2]),str(query_path),topk,topk_path])
+                    writer.writerow([ap,(str(query_path).split('\\\\')[-2]),str(query_path),topk,topk_path])
+                    # 添加數據行
+                    ws.append([ap,(str(query_path).split('\\\\')[-2]),str(query_path),str(topk),str(topk_path)])
                     csvfile.close()
                 mission.update()
             
             mAP,classes = mAP_output(save_path)
             
-            with open(save_path, 'a+', newline='') as csvfile:
-                    writer = csv.writer(csvfile)
-                    for row in classes:
-                        writer.writerow([row,classes[row]])
-                    writer.writerow(['mAP',mAP])
+            # with open(save_path, 'a+', newline='') as csvfile:
+            #         writer = csv.writer(csvfile)
+            #         for row in classes:
+            #             writer.writerow([row,classes[row]])
+            #         writer.writerow(['mAP',mAP])
+            wb['Summary'].append( [parts[1].split('_')[0], parts[3], parts[4],mAP])
+            self.move_sheet_to_first(output_excel_path, 'Summary')
+            
             #print('mAP : ',mAP)
+            
+            
+           
+            
+            wb.save(output_excel_path)
+            
+
+
+
             return mAP
 
         #開始檢索
@@ -1042,13 +1054,13 @@ class CBMIR():
                             # for dataset in os.listdir(self.query_path):
                             for i in range(1):
                                 
-                                target_dataset = self.project_name +'/' +self.path_listt[path_list] + '_target_dataset.csv'
+                                target_dataset = self.project_name +'/temp/target_dataset.csv'
                                 break
                             target_path =self.project_name +'/' +self.path_listt[path_list] + '*' +  target_dataset
 
                             # for dataset in os.listdir(self.query_path):
                             for i in range(1):
-                                query_dataset = self.project_name +'/' +self.path_listt[path_list] + '_query_dataset.csv'
+                                query_dataset = self.project_name +'/temp/query_dataset.csv'
                                 break
                             query_path = self.project_name +'/' +self.path_listt[path_list] + '*' + query_dataset
                             
@@ -1089,14 +1101,9 @@ class CBMIR():
                                 writer = csv.writer(csvfile)
                                 writer.writerow([cost_time])
                             timee = cost_time
-                        #now_time = int(time.time()-seconds)
-                        with open(self.project_name + '\mAP_output.csv', 'a+', newline='') as csvfile:
-                            csv.writer(csvfile).writerow([self.train_typee[train_type],
-                                                            self.path_listt[path_list],
-                                                            self.model_listt[model_list],
-                                                            (int(self.top_list[top])),
-                                                            avg_mAP,timee])
-
+                        
+        
+        shutil.rmtree(self.project_name+'/temp')
     def make_query_img(self):
         print("-------------------------------------------------------")
         print("開始印檢索圖")
@@ -1851,9 +1858,10 @@ class CBMIR():
     
     def inference(self,model_path,dataset_path):
        
-        datamaker = MAKE_INFERENCE_DATASET(self.data_path,self.project_name)
+        datamaker = MAKE_INFERENCE_DATASET(dataset_path,self.project_name)
         datamaker.make_input_excel()
-        datamaker.save_sheet_as_csv('inference_dataset', self.project_name + '/temp/inference_dataset.csv')               
+        datamaker.save_sheet_as_csv('inference_dataset', self.project_name + '/temp/inference_dataset.csv')      
+              
 
         #model = torch.load(model_path)
         dataset = ''
@@ -1917,9 +1925,16 @@ class CBMIR():
         # for i in info: csv.writer(open(output_csv_path, 'a+', newline='')).writerow(i)
         # csv.writer(open(output_csv_path, 'a+', newline='')).writerow(['acc',valid_acc_.item()])    
 
+        output_excel_path = self.project_name + '/Inference.xlsx'
+        sheetname = dataset_path.split('/')[-1]
         # 創建一個新的工作簿和工作表
-        wb = openpyxl.Workbook()
-        ws = wb.active
+        if not os.path.exists(output_excel_path):
+            openpyxl.Workbook().save(output_excel_path)
+        wb = openpyxl.load_workbook(output_excel_path, data_only=True)
+        wb.create_sheet(sheetname)
+        if 'Sheet'  in wb.sheetnames:wb.remove(wb['Sheet'])   
+
+        ws = wb[sheetname]
         # 添加表頭
         ws.append(['name', 'target', 'predict', 'Probability'])
         # 添加數據行
@@ -1927,8 +1942,9 @@ class CBMIR():
         # 添加準確率行
         ws.append(['acc', '', '', valid_acc_.item()])
         # 保存工作簿到 Excel 文件
-        output_excel_path = self.project_name + '/Inference.xlsx'
+        
         wb.save(output_excel_path)
+        shutil.rmtree(self.project_name+'/temp')
 
     def draw_confuse_matirx_AND_roc_img(self,model,loader,save_img_path,fold,input_csv_path):
         '''
@@ -2024,7 +2040,9 @@ class CBMIR():
         pass #function fin    
 
 if __name__ == '__main__':  
-    shutil.rmtree('CAT_DOG')        
+    #shutil.rmtree('CAT_DOG')  
+    # shutil.rmtree('CAT_DOG/temp')  
+    #shutil.move('CAT_DOG\CAT_DOG_dataset.xlsx')        
     cb =CBMIR()
     cb.fast_loader = not True
     cb.input_two_img =  not True
@@ -2036,11 +2054,10 @@ if __name__ == '__main__':
     cb.train_typee = ['finetune']
     cb.project_name = 'CAT_DOG'
     cb.max_epoch = 2
-    cb.auto_train()
-    cb.inference('CAT_DOG/finetune/cats_and_dogs/vit/1.pth','cats_and_dogs')
-    
     #cb.auto_train()
-    # cb.inference('NeckB_level1_4Position_result/finetune/ViT_AttentionAdd\ViT_AttentionAdd/vit/0.pth',cb.data_path)
-    # cb.query_path = cb.data_path
-    # cb.target_path = cb.data_path
-    # cb.retireve()
+    #cb.inference('CAT_DOG/finetune/cats_and_dogs/vit/1.pth','C:/Users/yccha/Downloads/shauyu/git/UI/cats_and_dogs')
+
+    cb.query_path = cb.data_path
+    cb.target_path = cb.data_path
+    cb.retireve_fold = -1
+    cb.retireve()
