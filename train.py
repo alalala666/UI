@@ -1878,6 +1878,7 @@ class CBMIR():
         print('start') 
         mission = tqdm(total=len(valid_loader))  
         for batch_idx, (name,data, target) in enumerate(valid_loader):
+            mission.update()
             sub_info = []
             model.eval()
             data, target = Variable(data), (target)[0] 
@@ -1904,22 +1905,30 @@ class CBMIR():
             sub_info.extend(prob)
             info.append(sub_info)
         
-            if batch_idx % 1 == 0:
-                count+=1
-                mission.update()
-                # print("[iter： {}/{}], acc： {:.6f}, loss： {:.6f}".format(
-                #   batch_idx+1, len(valid_loader),
-                # correct_valid / float((batch_idx + 1) * 1),
-                # valid_loss / float((batch_idx + 1) * 1)))
-            # if batch_idx == 3 and self.test_mode:break
+            #if batch_idx % 1 == 0:
+            count+=1
+            
         valid_acc_ = 100 * (correct_valid / float(total_valid))
-        output_csv_path = self.project_name +'/external_dataset/' +dataset
-        if not os.path.exists(output_csv_path):os.makedirs(output_csv_path)
+        # output_csv_path = self.project_name +'/external_dataset/' +dataset
+        # if not os.path.exists(output_csv_path):os.makedirs(output_csv_path)
 
-        output_csv_path = output_csv_path + '/output.csv'
-        csv.writer(open(output_csv_path, 'w', newline='')).writerow(['name','target','predict','Probability'])
-        for i in info: csv.writer(open(output_csv_path, 'a+', newline='')).writerow(i)
-        csv.writer(open(output_csv_path, 'a+', newline='')).writerow(['acc',valid_acc_.item()])    
+        # output_csv_path = output_csv_path + '/output.csv'
+        # csv.writer(open(output_csv_path, 'w', newline='')).writerow(['name','target','predict','Probability'])
+        # for i in info: csv.writer(open(output_csv_path, 'a+', newline='')).writerow(i)
+        # csv.writer(open(output_csv_path, 'a+', newline='')).writerow(['acc',valid_acc_.item()])    
+
+        # 創建一個新的工作簿和工作表
+        wb = openpyxl.Workbook()
+        ws = wb.active
+        # 添加表頭
+        ws.append(['name', 'target', 'predict', 'Probability'])
+        # 添加數據行
+        for row in info:ws.append(row)
+        # 添加準確率行
+        ws.append(['acc', '', '', valid_acc_.item()])
+        # 保存工作簿到 Excel 文件
+        output_excel_path = self.project_name + '/Inference.xlsx'
+        wb.save(output_excel_path)
 
     def draw_confuse_matirx_AND_roc_img(self,model,loader,save_img_path,fold,input_csv_path):
         '''
@@ -2015,7 +2024,7 @@ class CBMIR():
         pass #function fin    
 
 if __name__ == '__main__':  
-    #shutil.rmtree('CAT_DOG')        
+    shutil.rmtree('CAT_DOG')        
     cb =CBMIR()
     cb.fast_loader = not True
     cb.input_two_img =  not True
@@ -2023,11 +2032,11 @@ if __name__ == '__main__':
     cb.data_path = 'cats_and_dogs'
     cb.path_listt = ['cats_and_dogs']
     cb.batch_size = 2 ** 4
-    cb.model_listt = ['vit','swin','densenet']
+    cb.model_listt = ['vit']
     cb.train_typee = ['finetune']
     cb.project_name = 'CAT_DOG'
     cb.max_epoch = 2
-    #cb.auto_train()
+    cb.auto_train()
     cb.inference('CAT_DOG/finetune/cats_and_dogs/vit/1.pth','cats_and_dogs')
     
     #cb.auto_train()
