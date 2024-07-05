@@ -675,7 +675,7 @@ class CBMIR():
             for model_list in self.model_listt:
                 for path_list in self.path_listt:
                     for k in range(self.K):
-                        save_pathh = os.path.join(self.project_name, train_type, path_list, model_list)
+                        save_pathh = os.path.join(self.project_name, train_type+'_classification', path_list, model_list)
                         os.makedirs(save_pathh, exist_ok=True)
 
         
@@ -729,7 +729,7 @@ class CBMIR():
                         input_csv_path = self.project_name +'/temp/classification_dataset.csv'
                         pretrain = True if self.train_typee[train_type] =='finetune' else False
         
-                        save_pathh = self.project_name + '\\'+ self.train_typee[train_type]+'\\'+self.path_listt[path_list] + '\\'+self.model_listt[model_list]
+                        save_pathh = self.project_name + '\\'+ self.train_typee[train_type]+'_classification\\'+self.path_listt[path_list] + '\\'+self.model_listt[model_list]
                         train_path = 'input_data\\' +self.path_listt[path_list] +'\\fold' + str(k) + '\\train'
                         test_path = 'input_data\\' +self.path_listt[path_list] +'\\fold' + str(k) + '\\test' 
                         
@@ -998,7 +998,7 @@ class CBMIR():
                     writer = csv.writer(csvfile)
                     writer.writerow([ap,(str(query_path).split('\\\\')[-2]),str(query_path),topk,topk_path])
                     # 添加數據行
-                    ws.append([ap,(str(query_path).split('\\\\')[-2]),str(query_path),str(topk),str(topk_path)])
+                    ws.append([ap,(str(query_path).split('\\\\')[-2]),str(query_path)])
                     csvfile.close()
                 mission.update()
             
@@ -1050,7 +1050,7 @@ class CBMIR():
                                 save_pathh = self.project_name + '\\finetune_retrieve'+'\\'+self.path_listt[path_list] + '\\'+self.model_listt[model_list] + '\\fold' + str(k)
                             if not os.path.exists(save_pathh):
                                 os.makedirs(save_pathh)
-                            model_path = self.project_name + '\\'+ self.train_typee[train_type]+'\\'+self.path_listt[path_list] + '\\'+self.model_listt[model_list] + '\\'+str(k)+'.pth'
+                            model_path = self.project_name + '\\'+ self.train_typee[train_type]+'_classification\\'+self.path_listt[path_list] + '\\'+self.model_listt[model_list] + '\\'+str(k)+'.pth'
                             
                             # for dataset in os.listdir(self.query_path):
                             for i in range(1):
@@ -1281,17 +1281,21 @@ class CBMIR():
             #print(top_list)
             relevant = 0 
             #印出top-n串列
+            # for i in top_list:
+            #     if (str(query_path).split('/')[-2]) == (str(top_list[i]).split('/')[-2]):
+            #         relevant = relevant + 1
+            
+
+            #     #print(top_list[i])
+            #     image.append(str((top_list[i]))[3:-2]+'*'+str(float(i))[:4])
             for i in top_list:
-                if (str(query_path).split('/')[-2]) == (str(top_list[i]).split('/')[-2]):
-                    relevant = relevant + 1
-
-                #print(top_list[i])
-                image.append(str((top_list[i]))[3:-2]+'*'+str(float(i))[:4])
-
+                    if (str(query_path).split('/')[-2]) == (str(top_list[i][0]).split('\\\\')[-2]):
+                        relevant = relevant + 1
+                    image.append(str(top_list[i][0])[2:-1].replace('\\\\', '\\')+'*'+str(float(i))[:4])
             ap = relevant/top
 
             #print(len(feature_list))
-            path = path.split('/')[1]+path.split('/')[2]+'_'+path.split('/')[3]
+            #path = path.split('/')[1]+path.split('/')[2]+'_'+path.split('/')[3]
             fig, axs = plt.subplots(3, 4, figsize=(15, 10))
             fig.subplots_adjust(hspace=0.5, wspace=0.3)
             axs = axs.flatten()  # 将子图数组展开为一维数组
@@ -1307,7 +1311,7 @@ class CBMIR():
                     if i == 0:
                         axs[i].set_title(f"{'query'} ")
                     else:
-                        a = (image_path.split('*')[0]).split('/')[-2]
+                        a = (image_path.split('*')[0]).split('\\')[-2]
                         axs[i].set_title(f"{i}\n {os.path.basename(image_path.split('*')[1])}\n{a}")
                     f.close()
 
@@ -1339,7 +1343,7 @@ class CBMIR():
                         if not os.path.exists(img_save_path):
                             os.makedirs(img_save_path)
                         feature_path += '\\target_data.h5'
-                        model_path = self.project_name + '\\'+ self.train_typee[train_type]+'\\'+self.path_listt[path_list] + '\\'+self.model_listt[model_list] + '\\'+str(k)+'.pth'
+                        model_path = self.project_name + '\\'+ self.train_typee[train_type]+'_classification\\'+self.path_listt[path_list] + '\\'+self.model_listt[model_list] + '\\'+str(k)+'.pth'
                         model_name = str(self.model_listt[model_list])
                         
                         #print(feature_path,model_path,model_name,img_save_path)
@@ -2056,9 +2060,10 @@ if __name__ == '__main__':
     cb.project_name = 'CAT_DOG'
     cb.max_epoch = 2
     cb.auto_train()
-    cb.inference('CAT_DOG/finetune/cats_and_dogs/vit/1.pth','C:/Users/yccha/Downloads/shauyu/git/UI/cats_and_dogs')
+    cb.inference('CAT_DOG/finetune_classification/cats_and_dogs/vit/1.pth','C:/Users/yccha/Downloads/shauyu/git/UI/cats_and_dogs')
 
     cb.query_path = cb.data_path
     cb.target_path = cb.data_path
-    cb.retireve_fold = -1
+    cb.retireve_fold = 1
     cb.retireve()
+    cb.make_query_img()
