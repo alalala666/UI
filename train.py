@@ -139,11 +139,13 @@ class EarlyStopping:
 
 class CBMIR():
     def __init__(self):
+        self.device = 'cuda' #or 'cpu'
+
         self.data_path =str
         self.data_path = str#" input_data\\" 
         self.data_path1 = str
 
-
+        self.retrival_model_path = str
         self.target_path = str
         self.query_path = str
 
@@ -236,16 +238,16 @@ class CBMIR():
                 model.train()
 
                 if self.input_two_img:
-                    target = torch.autograd.Variable(target).cuda()
+                    target = torch.autograd.Variable(target).to(self.device)
                      # clear gradient
                     optimizer.zero_grad()
-                    output = model(torch.autograd.Variable(data[0]).cuda(), 
-                                   torch.autograd.Variable(data[1]).cuda())
+                    output = model(torch.autograd.Variable(data[0]).to(self.device), 
+                                   torch.autograd.Variable(data[1]).to(self.device))
                 else:
                     data = Variable(data)
                     target = Variable(target)
                     if torch.cuda.is_available():
-                        data, target = data.cuda(), target.cuda()
+                        data, target = data.to(self.device), target.to(self.device)
 
                     # clear gradient
                     optimizer.zero_grad()
@@ -306,14 +308,14 @@ class CBMIR():
                     mission.update()
                 model.eval()
                 if self.input_two_img:
-                    target = torch.autograd.Variable(target).cuda()
-                    output = model(torch.autograd.Variable(data[0]).cuda(), 
-                                   torch.autograd.Variable(data[1]).cuda())
+                    target = torch.autograd.Variable(target).to(self.device)
+                    output = model(torch.autograd.Variable(data[0]).to(self.device), 
+                                   torch.autograd.Variable(data[1]).to(self.device))
                 else:
                     data = Variable(data)
                     target = Variable(target)
                     if torch.cuda.is_available():
-                        data, target = data.cuda(), target.cuda()
+                        data, target = data.to(self.device), target.to(self.device)
 
 
                     # Forward propagation
@@ -470,7 +472,7 @@ class CBMIR():
             if self.optimizer == 'SGD':
                 optimizer = torch.optim.SGD(model.parameters(),lr=self.lr)
             elif self.optimizer == 'Adam':
-                optimizer = torch.optim.Adam(model.parameters(),lr=self.lr)
+                optimizer = torch.optim.AdamW(model.parameters(),lr=self.lr)
 
 
             scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=10)
@@ -510,6 +512,9 @@ class CBMIR():
                         max_acc = valid_acc_
                         best_model_path = save_path + '\\'+str(fold)+".pth"
                         torch.save(model,best_model_path)
+
+                        # best_model_path = save_path + '\\'+str(fold)+".pt"
+                        # torch.save(model.state_dict(),best_model_path)
                         
                     
 
@@ -570,13 +575,15 @@ class CBMIR():
 
 
             self.draw_confuse_matirx_AND_roc_img(best_model_path,valid_loader,save_path,fold,input_csv_path)
+
+            self.draw_Heatmap(model,best_model_path,valid_loader,save_path,fold)
             return total_train_loss, total_valid_loss, training_accuracy, valid_accuracy,specificity,sensitivity,ppv,npv,auc
         
         #get num class
         num_classes = int(next(csv.reader( open(input_csv_path.split('.csv')[0]+'_detail.csv', newline='')))[1])
-        model =model_choose(model_name, num_classes, pretrain).cuda()
+        model =model_choose(model_name, num_classes, pretrain).to(self.device)
 
-        df = pd.read_csv(input_csv_path,encoding='unicode_escape')
+        df = pd.read_csv(input_csv_path)
         
         if self.input_two_img:
             train_loader = DataLoader(two_img_customDataset(df[df['set'] != fold], shuffle = True), batch_size=batch_size)
@@ -686,7 +693,7 @@ class CBMIR():
             datamaker = MAKE_CLASSIFICATION_DATASET(self.data_path,self.project_name)
             datamaker.make_input_excel()
             datamaker.save_sheet_as_csv('classification_dataset', self.project_name+'/temp/classification_dataset.csv')
-            datamaker.save_sheet_as_csv('classification_dataset_Summary', 'CAT_DOG/temp/classification_dataset_detail.csv')
+            datamaker.save_sheet_as_csv('classification_dataset_Summary', self.project_name+'/temp/classification_dataset_detail.csv')
         print('make_input_csv OK !')     
         print('------------------------------------------------------------') 
         #----------------------------------------
@@ -837,9 +844,38 @@ class CBMIR():
         self.move_sheet_to_first(xlsx_path, 'Std')
 
 
-        shutil.rmtree(self.project_name+'/temp')
+        #shutil.rmtree(self.project_name+'/temp')
 #################################################### 0704 ################################
 
+    def draw_Heatmap(self,model,best_model_path,valid_loader,save_path,fold):
+        print('####################################################')
+        print('draw_Heatmap')
+        print('####################################################')
+
+        #print(best_model_path)
+        network = str(best_model_path).split('\\')[-2]
+        save_folder =  os.path.join(str(best_model_path)[:-4]+ '\\heatmap\\')
+        if not os.path.exists(save_folder):
+            os.makedirs(save_folder)
+
+        if network == 'densenet':
+            from utils.densenet_heatmap import DenseNet_Heatmap as _CAM_
+        elif network == 'vit':
+            from utils.vit_heatmap import ViT_Heatmap as _CAM_
+        elif network == 'swin':
+            from utils.swin_heatmap import Swin_Heatmap as _CAM_
+        #print(_CAM_)
+        
+
+        mission = tqdm(total=len(valid_loader.dataset))  
+        for batch_idx, (name,data, target) in enumerate(valid_loader):
+            for i in range(len(name)):
+                img_name = str(name[i]).split('\\')[-1]
+                _CAM_(model.cpu(),name[i],save_folder+img_name)
+                #print(i)
+                mission.update()
+        print()
+        return 0 
     def retireve(self):
         print("-------------------------------------------------------")
         print("開始檢索")
@@ -1043,14 +1079,14 @@ class CBMIR():
                                 continue
                             
 
-                            if self.train_typee[train_type] == "trainfromscratch":
+                            if "trainfromscratch" in self.retrival_model_path:
                                 save_pathh = self.project_name + '\\trainfromscratch_retrieve'+'\\'+self.path_listt[path_list] + '\\'+self.model_listt[model_list] + '\\fold' + str(k) 
                                 #continue
-                            elif self.train_typee[train_type] == "finetune":
+                            else:#elif self.train_typee[train_type] == "finetune":
                                 save_pathh = self.project_name + '\\finetune_retrieve'+'\\'+self.path_listt[path_list] + '\\'+self.model_listt[model_list] + '\\fold' + str(k)
                             if not os.path.exists(save_pathh):
                                 os.makedirs(save_pathh)
-                            model_path = self.project_name + '\\'+ self.train_typee[train_type]+'_classification\\'+self.path_listt[path_list] + '\\'+self.model_listt[model_list] + '\\'+str(k)+'.pth'
+                            model_path = self.retrival_model_path#self.project_name + '\\'+ self.train_typee[train_type]+'_classification\\'+self.path_listt[path_list] + '\\'+self.model_listt[model_list] + '\\'+str(k)+'.pth'
                             
                             # for dataset in os.listdir(self.query_path):
                             for i in range(1):
@@ -1104,7 +1140,8 @@ class CBMIR():
                             timee = cost_time
                         
         
-        shutil.rmtree(self.project_name+'/temp')
+        #shutil.rmtree(self.project_name+'/temp')
+    
     def make_query_img(self):
         print("-------------------------------------------------------")
         print("開始印檢索圖")
@@ -1130,7 +1167,7 @@ class CBMIR():
                     
                         #a = model.features.children
                         
-                        model=torch.load(model_path)
+                        model=torch.load(self.retrival_model_path)
                         with torch.no_grad():
                             input = model.features(img)
                             avgPooll = nn.AdaptiveAvgPool2d(1)
@@ -1161,7 +1198,7 @@ class CBMIR():
                             model = torchvision.models.swin_b(weights = None)
                             model=torch.load(model_path)
                             #model = torchvision.models.swin_b(weights = 1)
-                            #model.cuda()
+                            #model.to(self.device)
                             model.eval()
 
 
@@ -1205,7 +1242,7 @@ class CBMIR():
                         #model = torch.load(model_path)
                         #model = torchvision.models.vit_b_16(weights = None) 
                         # model = torch.load('save_fin/finetune/MSI/vit/2.pth')
-                        #model.cuda()
+                        #model.to(self.device)
                         model.eval()
                         
                         
@@ -1232,7 +1269,7 @@ class CBMIR():
                     feature_list.append(k.get('feature')[i])
                     feature_path.append(k.get('path')[i])
             
-            model =  torch.load(model_path)
+            model =  torch.load(self.retrival_model_path)
             #----------------------------------------------------------
             #               mAP compute
             #----------------------------------------------------------
@@ -1335,7 +1372,7 @@ class CBMIR():
                                 print('all')
                         elif self.retireve_fold != k:
                                 continue
-                        if self.train_typee[train_type] == "trainfromscratch":
+                        if  "trainfromscratch" in self.retrival_model_path:
                             feature_path = self.project_name + '\\trainfromscratch_retrival'+'\\'+self.path_listt[path_list] + '\\'+self.model_listt[model_list] + '\\fold' + str(k) 
                         else:
                             feature_path = self.project_name + '\\finetune_retrieve'+'\\'+self.path_listt[path_list] + '\\'+self.model_listt[model_list] + '\\fold' + str(k)
@@ -1378,7 +1415,7 @@ class CBMIR():
         '''
         
         def make_Probability_feature(retrieval_detail_result=str,model_path=str,ML_feature_save_path=str,query_dataset_csv_path = str,answer_list = dict):
-            model = torch.load(model_path).cuda()
+            model = torch.load(model_path).to(self.device)
             csv_path = query_dataset_csv_path
 
             count = 0 
@@ -1386,19 +1423,17 @@ class CBMIR():
             for id,row in enumerate(csv.reader(open(query_dataset_csv_path, newline=''))):
                 count += 1
             for id,row in enumerate(csv.reader(open(query_dataset_csv_path, newline=''))):
-                try:
+                    if id == 0:continue
                     porb_list = []
                     transform = transforms.Compose([transforms.Resize((224, 224)),transforms.ToTensor(),transforms.Normalize([0.5]*3, [0.5]*3)])
-                    img_name = str(row[2])
-                    img = torch.unsqueeze(transform(Image.open(img_name)), dim=0).cuda()
+                    img_name = str(row[1])
+                    img = torch.unsqueeze(transform(Image.open(img_name)), dim=0).to(self.device)
                     output = torch.softmax(model(img),dim=1).flatten().tolist()
                     porb_list.append(img_name)
                     porb_list.extend(output)
                     print('make_Probability_feature --> compute Probability : ',id)
                     porb_feature_list.append(porb_list)
-                    #if self.test_mode:break
-                except:
-                    continue
+              
            
             #使用檢索細節表
             csv_path = retrieval_detail_result
@@ -1440,13 +1475,12 @@ class CBMIR():
             # for i in one_hot_dict:
             #     print(i,one_hot_dict[i])
             count =  -1 #count init
-            for row in (csv.reader(open(csv_path, newline=''))):
-                try:
-
-                    
+            for id,row in enumerate(csv.reader(open(csv_path, newline=''))):
+     
+                    if id == 0 :continue
                     ML_sub_list = []
                     #print(porb_feature_list[count])
-                    img_name = str(row[2])[3:-2]
+                    img_name = str(row[2])[3:-2].replace('\\\\','\\')
                     roww = ast.literal_eval(row[3])
                     element_count = Counter(roww)
                     most_common_element = element_count.most_common(1)
@@ -1467,13 +1501,11 @@ class CBMIR():
                     print('make_Probability_feature : ',count)
                     
 
-                except:
-                    continue
-
+       
             return None
 
         def make_Retrieval_feature(retrieval_detail_result=str,model_path=str,ML_feature_save_path=str,query_dataset_csv_path = str,answer_list = dict):
-            model = torch.load(model_path).cuda()
+            model = torch.load(model_path).to(self.device)
             csv_path = query_dataset_csv_path
 
 
@@ -1490,12 +1522,10 @@ class CBMIR():
       
 
             for count ,row in enumerate(csv.reader(open(csv_path, newline=''))):
-                try:
+                    if count == 0 :continue
                     roww = ast.literal_eval(row[3])
                     sets.extend(roww)
-                    #print(roww)
-                except:
-                    continue
+                  
 
             # 创建独热编码
 
@@ -1517,13 +1547,12 @@ class CBMIR():
             # for i in one_hot_dict:
             #     print(i,one_hot_dict[i])
             count =  -1 #count init
-            for row in (csv.reader(open(csv_path, newline=''))):
-                try:
-
+            for id,row in enumerate(csv.reader(open(csv_path, newline=''))):
+                    if id == 0:continue
                     count += 1
                     ML_sub_list = []
                     #print(porb_feature_list[count])
-                    img_name = str(row[2])[3:-2]
+                    img_name = str(row[2])[3:-2].replace('\\\\','\\')
                     roww = ast.literal_eval(row[3])
                     element_count = Counter(roww)
                     most_common_element = element_count.most_common(1)
@@ -1538,15 +1567,12 @@ class CBMIR():
                     csv.writer(open(Retrieval_feature_path, 'a+', newline='')).writerow(ML_sub_list)
 
                     print('make_Retrieval_feature : ',count)
-                    
-
-                except:
-                    continue
+          
 
             return None
 
         def make_Probability_Retrieval_feature(retrieval_detail_result=str,model_path=str,ML_feature_save_path=str,query_dataset_csv_path = str,answer_list = dict):
-            model = torch.load(model_path).cuda()
+            model = torch.load(model_path).to(self.device)
             csv_path = query_dataset_csv_path
 
             count = 0 
@@ -1557,8 +1583,8 @@ class CBMIR():
                 try:
                     porb_list = []
                     transform = transforms.Compose([transforms.Resize((224, 224)),transforms.ToTensor(),transforms.Normalize([0.5]*3, [0.5]*3)])
-                    img_name = str(row[2])
-                    img = torch.unsqueeze(transform(Image.open(img_name)), dim=0).cuda()
+                    img_name = str(row[1])
+                    img = torch.unsqueeze(transform(Image.open(img_name)), dim=0).to(self.device)
                     output = torch.softmax(model(img),dim=1).flatten().tolist()
                     porb_list.append(img_name)
                     porb_list.extend(output)
@@ -1615,7 +1641,7 @@ class CBMIR():
                     
                     ML_sub_list = []
                     #print(porb_feature_list[count])
-                    img_name = str(row[2])[3:-2]
+                    img_name = str(row[2])[3:-2].replace('\\\\','\\')
                     
                     roww = ast.literal_eval(row[3])
                     element_count = Counter(roww)
@@ -1657,13 +1683,26 @@ class CBMIR():
                                 print('all')
                         elif self.retireve_fold != k:
                                 continue
+                        
+                        train_type = self.retrival_model_path.split('/')[-4].split('_')[0]
                         if not os.path.exists(self.project_name + '/ML_feature/' + train_type +'/'+path_list+'/'+model_list+'/fold'+str(k)):
                             os.makedirs(self.project_name + '/ML_feature/' + train_type +'/'+path_list+'/'+model_list+'/fold'+str(k))
  
                         retrieval_detail_result = self.project_name +'/'+ train_type +'_retrieve/'+path_list+'/'+model_list+'/fold'+str(k)+'/top_10/output.csv'
-                        model_path = self.project_name +'/'+ train_type +'/'+path_list+'/'+model_list+'/'+str(k)+'.pth'
+                        
+
+
+                        if "scratch" in self.retrival_model_path:
+                            retrieval_detail_result = self.project_name + '\\trainfromscratch_retrieve'+'\\'+path_list+'/'+model_list+'/fold'+str(k)+'/top_10/output.csv'
+
+                        else:#elif self.train_typee[train_type] == "finetune":
+                            retrieval_detail_result = self.project_name + '\\finetune_retrieve'+'\\'+path_list+'/'+model_list+'/fold'+str(k)+'/top_10/output.csv'
+
+
+                        
+                        model_path = self.retrival_model_path#self.project_name +'/'+ train_type +'/'+path_list+'/'+model_list+'/'+str(k)+'.pth'
                         ML_feature_save_path = self.project_name + '/ML_feature/' + train_type +'/'+path_list+'/'+model_list+'/fold'+str(k)
-                        query_dataset_csv_path = self.project_name +'/' +path_list+ '_query_dataset.csv'
+                        query_dataset_csv_path = self.project_name +'/temp/query_dataset.csv'
 
                         make_Retrieval_feature(retrieval_detail_result,model_path,ML_feature_save_path,query_dataset_csv_path,answer_list)
                         make_Probability_feature(retrieval_detail_result,model_path,ML_feature_save_path,query_dataset_csv_path,answer_list)
@@ -1840,8 +1879,14 @@ class CBMIR():
                                 print('all')
                         elif self.retireve_fold != k:
                                 continue
+                        
+
+                        train_type = self.retrival_model_path.split('/')[-4].split('_')[0]
+                        
                         if not os.path.exists(self.project_name + '/ML_result/' + train_type +'/'+path_list+'/'+model_list+'/fold'+str(k)):
                             os.makedirs(self.project_name + '/ML_result/' + train_type +'/'+path_list+'/'+model_list+'/fold'+str(k))
+                        
+                        
                         data_path = self.project_name + '/ML_feature/' + train_type +'/'+path_list+'/'+model_list+'/fold'+str(k)
                         save_path = self.project_name + '/ML_result/' + train_type +'/'+path_list+'/'+model_list+'/fold'+str(k)
                         for csv_path in os.listdir(data_path):
@@ -1877,7 +1922,15 @@ class CBMIR():
         input_csv_path = self.project_name + '/temp/inference_dataset.csv'
         df = pd.read_csv(input_csv_path)
         valid_loader = DataLoader(customDataset(df, shuffle = True,pathColumn0=1), batch_size=1)
-        model = torch.load(model_path).cuda()
+        model = torch.load(model_path).to(self.device)
+        model_name = str(model_path).split('/')[-2]
+        folders = [f for f in os.listdir(dataset_path) if os.path.isdir(os.path.join(dataset_path, f))]
+
+        # 顯示資料夾數量
+        #print(f"資料夾數量: {len(folders)}")
+
+        # model =model_choose(model_name, len(folders), True).to(self.device)
+        # model.load_state_dict(torch.load(model_path))
         model.eval()
         total_valid = 0
         correct_valid = 0
@@ -1897,7 +1950,7 @@ class CBMIR():
             data, target = Variable(data), (target)[0] 
             
             if torch.cuda.is_available():
-                data, target = data.cuda(), target#.cuda()
+                data, target = data.to(self.device), target#.to(self.device)
 
             output = model(data)
 
@@ -1949,9 +2002,9 @@ class CBMIR():
         # 保存工作簿到 Excel 文件
         
         wb.save(output_excel_path)
-        shutil.rmtree(self.project_name+'/temp')
+        #shutil.rmtree(self.project_name+'/temp')
 
-    def draw_confuse_matirx_AND_roc_img(self,model,loader,save_img_path,fold,input_csv_path):
+    def draw_confuse_matirx_AND_roc_img(self,model_path,loader,save_img_path,fold,input_csv_path):
         '''
         繪製混淆矩陣圖與ROC圖(ROC圖只能用於二分類)
         '''
@@ -1973,7 +2026,9 @@ class CBMIR():
         test_labels = []
         pred_labels = []
         y_prob = []
-        model = torch.load(model)
+        model = torch.load(model_path)
+        ##model =model_choose(model_path.split('\\')[-2], 2, True).to(self.device)
+        #model.load_state_dict(torch.load(model_path))
         #print("validate",model,"fold:",fold)
         mission = tqdm(total=len(loader))
         for batch_idx, (name,data, target) in enumerate(loader):
@@ -1981,14 +2036,14 @@ class CBMIR():
             mission.update()
             model.eval()
             if self.input_two_img:
-                target = torch.autograd.Variable(target).cuda()
-                output = model(torch.autograd.Variable(data[0]).cuda(), 
-                               torch.autograd.Variable(data[1]).cuda())
+                target = torch.autograd.Variable(target).to(self.device)
+                output = model(torch.autograd.Variable(data[0]).to(self.device), 
+                               torch.autograd.Variable(data[1]).to(self.device))
             else:
                 data = Variable(data)
                 target = Variable(target)
                 if torch.cuda.is_available():
-                    data, target = data.cuda(), target.cuda()
+                    data, target = data.to(self.device), target.to(self.device)
                 output = model(data) 
           
 
@@ -2044,26 +2099,30 @@ class CBMIR():
         plt.close('all')  
         pass #function fin    
 
-if __name__ == '__main__':  
-    shutil.rmtree('CAT_DOG')  
-    # shutil.rmtree('CAT_DOG/temp')  
-    #shutil.move('CAT_DOG\CAT_DOG_dataset.xlsx')        
-    cb =CBMIR()
-    cb.fast_loader = not True
-    cb.input_two_img =  not True
-    cb.test_mode =   True
-    cb.data_path = 'cats_and_dogs'
-    cb.path_listt = ['cats_and_dogs']
-    cb.batch_size = 2 ** 4
-    cb.model_listt = ['vit']
-    cb.train_typee = ['finetune']
-    cb.project_name = 'CAT_DOG'
-    cb.max_epoch = 2
-    cb.auto_train()
-    cb.inference('CAT_DOG/finetune_classification/cats_and_dogs/vit/1.pth','C:/Users/yccha/Downloads/shauyu/git/UI/cats_and_dogs')
-
-    cb.query_path = cb.data_path
-    cb.target_path = cb.data_path
-    cb.retireve_fold = 1
-    cb.retireve()
-    cb.make_query_img()
+if __name__ == '__main__':  #pip install PyWavelets
+    for i in range(7):
+        cb =CBMIR()
+        cb.device = 'cuda' 
+        cb.project_name = 'cats_and_dogs'+ '_' +str(i)   
+        cb.optimizer = 'adam'
+        cb.lr = 1e-3
+        
+        try:shutil.rmtree(cb.project_name)
+        except:pass
+        
+        cb.fast_loader = not True
+        cb.input_two_img =  not True
+        cb.test_mode =   True
+        cb.data_path = 'cats_and_dogs'
+        cb.path_listt = ['cats_and_dogs']
+        cb.batch_size = 2 ** 4
+        cb.max_epoch = 1000
+        cb.earlystop_arg0 = 999
+        cb.earlystop_arg1 = 999
+        cb.model_listt =  ['swin']
+        cb.train_typee = ['finetune']
+        cb.auto_train()
+        # cb.data_path = 'Institution2'
+        # cb.path_listt = ['Institution2']
+        # cb.auto_train()
+        # cb.inference

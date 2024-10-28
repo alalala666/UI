@@ -146,4 +146,7 @@ def model_choose(model_name, num_classes, pretrain):
         model = PViT(False)
     elif model_name == 'multi_input_vit_cbam':
         model = PViT(True)
+
+
+
     return model

@@ -4,8 +4,9 @@
     <project_name>CAT_DOG</project_name>
     <dataset_path0>cats_and_dogs</dataset_path0>
     <dataset_path1 />
+    <use_gpu>1</use_gpu>
     <network>vit</network>
-    <Attention>False</Attention>
+    <Attention>True</Attention>
     <train_type>finetune</train_type>
     <batch_size>16</batch_size>
     <k>5</k>
@@ -18,8 +19,8 @@
   
   <retrieval>
     <retrieve>False</retrieve>
-    <target_dataset>C:/Users/yccha/Downloads/shauyu/UI/cats_and_dogs</target_dataset>
-    <query_dataset>C:/Users/yccha/Downloads/shauyu/UI/cats_and_dogs</query_dataset>
+    <target_dataset>cats_and_dogs</target_dataset>
+    <query_dataset>cats_and_dogs</query_dataset>
     <make_query_imgs>False</make_query_imgs>
     <inference>False</inference>
     <answer />

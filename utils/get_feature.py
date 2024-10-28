@@ -53,7 +53,7 @@ def vit_get_feature(pred_path,save_folder,model_path,k):
         model = torchvision.models.vit_b_16(weights=1)
     else:
         model = torch.load(model_path)
-    model.cuda()
+    model.to(self.device)
     
    
     img_list = []
@@ -162,7 +162,7 @@ def densenet_get_feature(pred_path,save_folder,model_path,k):
              model = torchvision.models.densenet201(pretrained=1)
     else:
             model = torch.load(model_path)
-    model.cuda()
+    model.to(self.device)
     model.eval()
     img_list = []
     feature_list = []

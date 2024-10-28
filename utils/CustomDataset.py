@@ -85,10 +85,10 @@ class two_img_customDataset(Dataset):
 # df = pd.read_csv(input_csv_path,encoding='unicode_escape')
 # train_loader = DataLoader(two_img_customDataset(df[df['set'] != 2], shuffle = True), batch_size=16)
 
-# model = PViT().cuda()
+# model = PViT().to(self.device)
 # for batch_id,(image_name,img,label) in enumerate(train_loader):
 #     print(batch_id,image_name,img,label)
    
-    # label = torch.autograd.Variable(label).cuda()
-    # model(torch.autograd.Variable(img[0]).cuda(), torch.autograd.Variable(img[1]).cuda())
+    # label = torch.autograd.Variable(label).to(self.device)
+    # model(torch.autograd.Variable(img[0]).to(self.device), torch.autograd.Variable(img[1]).to(self.device))
     

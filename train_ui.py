@@ -95,6 +95,9 @@ def make_env():
   command = "activate "+project_name.get()+" && pip install h5py"
   os.system(command)
 
+  command = "activate "+project_name.get()+" && pip install openpyxl"
+  os.system(command)
+
   command = "activate "+project_name.get()+" && pip install scipy"
   os.system(command)
   
@@ -563,6 +566,7 @@ def ML():
     cb.path_listt= [(cb.data_path.split('/')[-1])]
     cb.train_typee = []
     cb.K = 5
+
     if(str(retrival_model_path.get()).split('/')[-4]=='finetune'):
         cb.train_typee.append('finetune')
     else:
@@ -577,6 +581,17 @@ def ML():
         ML_models.append('Random_Forest')
     if(ANN.get()==1):
         ML_models.append('ANN')
+    cb.path_listt= [(cb.data_path.split('/')[-1])]
+    cb.ML_answer = anwser.get()
+    cb.retrival_model_path = str(retrival_model_path.get())
+    cb.retireve_fold = int(str(retrival_model_path.get()).split('/')[-1][0])
+    # cb.train_typee= []
+    # if 'finetune' in str(retrival_model_path.get()):cb.train_typee.append('finetune')
+    # if 'trainfromscratch' in str(retrival_model_path.get()):cb.train_typee.append('trainfromscratch')
+    cb.path_listt= [retrival_model_path.get().split('/')[-3]]#[(cb.data_path.split('/')[-1])]
+    
+    #CCD/ML_result/finetune/cats_and_dogs/vit/fold0/Probability.csv
+    #CCD\ML_feature\finetune\cats_and_dogs\vit\fold0\Probability.csv
     cb.ML(ML_path.get(),ML_models)
     print("--------------------------------------------------")
     print("ML fin")
@@ -631,6 +646,14 @@ def Retrieval_Result_Features():
     # cb.path_listt = [i for i in os.listdir(data_path.get())]
     cb.path_listt= [(cb.data_path.split('/')[-1])]
     cb.ML_answer = anwser.get()
+    cb.retrival_model_path = str(retrival_model_path.get())
+    cb.retireve_fold = int(str(retrival_model_path.get()).split('/')[-1][0])
+    # cb.train_typee= []
+    # if 'finetune' in str(retrival_model_path.get()):cb.train_typee.append('finetune')
+    # if 'trainfromscratch' in str(retrival_model_path.get()):cb.train_typee.append('trainfromscratch')
+    cb.path_listt= [retrival_model_path.get().split('/')[-3]]#[(cb.data_path.split('/')[-1])]
+    
+   # self.train_typee = ['finetune']
     cb.make_ML_feature()
     print("--------------------------------------------------")
     print("Retrieval_Result_Features fin")
@@ -680,6 +703,7 @@ def retireve():
     #print(cb.data_path,cb.project_name,cb.model_listt,cb.train_typee,cb.K,cb.batch_size,cb.num_epochs,cb.path_listt)
     #cb.foldd(cb.data_path)
     # cb.path_listt = [i for i in os.listdir(data_path.get())]
+    cb.retrival_model_path = retrival_model_path.get()
     cb.path_listt= [retrival_model_path.get().split('/')[-3]]#[(cb.data_path.split('/')[-1])]
     #cb.auto_train()
     cb.retireve()
@@ -689,6 +713,7 @@ def retireve():
     print("--------------------------------------------------")
 
 def train():
+    '''
     #print("check_env")
     if not check_env():
         messagebox.showinfo("提示", "請先安裝虛擬環境")
@@ -696,10 +721,13 @@ def train():
     print("檢查函式庫是否安裝完成，請稍後。")
     if not check_env_lib():return 'please create env'
     print("train")
-    
+    '''
     
     from train import CBMIR  
     cb = CBMIR()
+    print(use_cpu.get())
+    #if 
+    cb.device = 'cuda' if use_cpu.get() else 'cpu'
     cb.input_two_img =Two_Image.get()
     cb.data_path = data_path.get()
     cb.data_path1 = data_path2.get()
@@ -788,28 +816,41 @@ def select_anwser_folder():
 
 def select_target_folder():
     folder_path = filedialog.askdirectory()  # 打开对话框让用户选择文件夹
+    #print(save_folder.get())
+    #folder_path = folder_path.split(save_folder.get())[1]
+    
     if folder_path == '':return
     print("select_target_folder:", folder_path)
     target_path.set(folder_path)
-    target_path_show.set('/'+folder_path+'/')
-
+    folder_path = folder_path.split('/')[-1]
+    target_path_show.set(('/'+folder_path+'/'))
+    
+    
 def select_retrival_model_path():
     folder_path = filedialog.askopenfilename()  # 打开对话框让用户选择文件夹
     if folder_path == '':return
     print("select_model_path:", folder_path)
+    
     retrival_model_path.set(folder_path)
+    folder_path = folder_path.split('/')[-1]
+    retrival_model_path_show.set('/'+folder_path+'/')
 
 def select_inference_model_path():
     folder_path = filedialog.askopenfilename()  # 打开对话框让用户选择文件夹
     if folder_path == '':return
     print("select_model_path:", folder_path)
     inference_model_path.set(folder_path)
+    folder_path = folder_path.split('/')[-1]
+    inference_model_path_show.set('/'+folder_path+'/')
 
 def select_inference_folder():
     folder_path = filedialog.askdirectory()  # 打开对话框让用户选择文件夹
     if folder_path == '':return
     print("select_inference_folder:", folder_path)
     inference_path.set(folder_path)
+    folder_path = folder_path.split('/')[-1]
+    inference_path_show.set('/'+folder_path+'/')
+    
 
 def select_ML_folder():
     folder_path = filedialog.askopenfilename()  # 打开对话框让用户选择文件夹
@@ -822,6 +863,7 @@ def select_query_folder():
     if folder_path == '':return
     print("select_query_folder:", folder_path)
     query_path.set(folder_path)
+    folder_path = folder_path.split('/')[-1]
     query_path_show.set('/'+folder_path+'/')
 
 def select_folder():
@@ -829,6 +871,7 @@ def select_folder():
     if folder_path == '':return
     print("select_folder:", folder_path)
     data_path.set(folder_path)
+    folder_path = folder_path.split('/')[-1]
     data_path_show.set('/'+folder_path+'/')
 
 def select_folder2():
@@ -836,6 +879,7 @@ def select_folder2():
     if folder_path == '':return
     print("select_folder:", folder_path)
     data_path2.set(folder_path)
+    folder_path = folder_path.split('/')[-1]
     data_path2_show.set('/'+folder_path+'/')
 
 def browse_folder(): 
@@ -845,8 +889,12 @@ def browse_folder():
     setting.set(folder_selected)
     # setting_path = setting.get()
     print('select setting:'+setting.get())
+    use_cpu.set([heading.text for heading in ET.parse(setting.get()).getroot().iter('use_gpu')][0])
+
+
     project_name.set(([heading.text for heading in ET.parse(setting.get()).getroot().iter('project_name')][0]))
     data_path.set([heading.text for heading in ET.parse(setting.get()).getroot().iter('dataset_path0')][0])
+    print(data_path.get())
     data_path2.set([heading.text for heading in ET.parse(setting.get()).getroot().iter('dataset_path1')][0])
 
     swinVar1.set('swin' in [heading.text for heading in ET.parse(setting.get()).getroot().iter('network')][0])
@@ -878,7 +926,13 @@ def browse_folder():
     
     root.update()
     check_env()
-    
+
+def check_cpu_image():
+    #  test()
+    #use_cpu.set
+    return 0
+
+
 def check_two_image():
 #  test()
  if  Two_Image.get():
@@ -952,6 +1006,12 @@ create_env_btn.grid(row=2, column=0, padx=10)
 check_env_btn = tk.Button(frame_train1, text="Check Environment", command=check_env_lib, font=("Times New Roman",14))
 check_env_btn.grid(row=2, column=1, padx=10)
 
+
+#use_cpu = tk.IntVar(value=0)
+use_cpu = tk.IntVar(value= [heading.text for heading in ET.parse(setting.get()).getroot().iter('use_gpu')][0])
+tk.Checkbutton(frame_train1, font=("Times New Roman",14), text = "CPU", variable = use_cpu,command=check_two_image).grid(row=2, column=4)
+
+
 #############################################
 # 第1部分：Classification
 #############################################
@@ -975,20 +1035,23 @@ tk.Checkbutton(frame_train, text = "Two Image", variable = Two_Image,command=che
 
 #--資料集路徑
 ttk.Label(frame_train, font=("Times New Roman",14),text="Dataset：").grid(row=1, column=0,sticky='wn')
-data_path = tk.StringVar(value= '')
+#data_path = tk.StringVar(value= '')
+data_path = tk.StringVar(value=[heading.text for heading in ET.parse(setting.get()).getroot().iter('dataset_path0')][0])
 train_dataset_input = tk.Button(frame_train,font=("Times New Roman",14),text="　　選取　　",command=select_folder).grid(row=1, column=1,sticky='wn') 
 
-if data_path.get() == '':
-    data_path_show =  tk.StringVar(value='')
-else:
-    data_path_show =  tk.StringVar(value='/' + data_path.get()+ '/')
+# if data_path.get() == '':
+#     data_path_show =  tk.StringVar(value='')
+# else:
+data_path_show =  tk.StringVar(value='/' + data_path.get()+ '/')
 tk.Label(frame_train, textvariable=data_path_show, font=("Times New Roman",14)).grid(row=1, column=2,sticky='wn')
 
-data_path2 = tk.StringVar(value= '')
-if data_path2.get() == '':
-    data_path2_show =  tk.StringVar(value='')
-else:
-    data_path2_show =  tk.StringVar(value='/' + data_path.get()+ '/')
+# data_path2 = tk.StringVar(value= '')
+data_path2 = tk.StringVar(value=[heading.text for heading in ET.parse(setting.get()).getroot().iter('dataset_path1')][0])
+
+# if data_path2.get() == '':
+#     data_path2_show =  tk.StringVar(value='')
+# else:
+data_path2_show =  tk.StringVar(value='/' + data_path2.get()+ '/')
 # data_path2_show =  tk.StringVar(value='/' + data_path2.get()+ '/')
 train_dataset_input2 = tk.Button(frame_train,font=("Times New Roman",14),text="　　選取　　",command=select_folder2)
 train_dataset_input2.grid(row=1, column=3,sticky='wn') 
@@ -1077,19 +1140,24 @@ train_btn.grid(row=11, column=6)
 tk.Label(frame_train, font=("Times New Roman",14),text='----------------------------------------------------------------------------------------------------------------------------------------------').grid(row=12, column=0,columnspan=9)
 
 
-inference_path = tk.StringVar()
+
 inference_model_path = tk.StringVar()
+inference_model_path_show = tk.StringVar()
+inference_model_path_show =  tk.StringVar(value='/' + inference_model_path_show.get()+ '/')
+
 
 tk.Label(frame_train, font=("Times New Roman",14),text='[ Inference ] ').grid(row=13, column=0,sticky='wn')
 ttk.Label(frame_train, font=("Times New Roman",14),text="Model :　　").grid(row=14, column=0)
 retrival_btn = tk.Button(frame_train, font=("Times New Roman",14),text="　　選取　　", command=select_inference_model_path).grid(row=14, column=1)
-tk.Label(frame_train, textvariable=inference_model_path, font=("Times New Roman",14)).grid(row=14, column=2,sticky='wn')
+tk.Label(frame_train, textvariable=inference_model_path_show, font=("Times New Roman",14)).grid(row=14, column=2,sticky='wn')
 
-
+inference_path = tk.StringVar()
+inference_path_show = tk.StringVar()
+inference_path_show =  tk.StringVar(value='/' + inference_path.get()+ '/')
 
 ttk.Label(frame_train, font=("Times New Roman",14),text="Test set :　　").grid(row=15, column=0)
 retrival_btn = tk.Button(frame_train, font=("Times New Roman",14),text="　　選取　　", command=select_inference_folder).grid(row=15, column=1)
-tk.Label(frame_train, textvariable=inference_path, font=("Times New Roman",14)).grid(row=15, column=2,sticky='wn')
+tk.Label(frame_train, textvariable=inference_path_show, font=("Times New Roman",14)).grid(row=15, column=2,sticky='wn')
 
 
 inference_btn = tk.Button(frame_train,font=("Times New Roman",14),text=" Run ",command=inference)
@@ -1105,26 +1173,28 @@ frame_search.grid(row=1, column=1, pady=0,sticky='n')
 ttk.Label(frame_search, font=("Times New Roman",14),text="[ Retrieval] Top-10").grid(row=0, column=0,sticky='wn')
 
 retrival_model_path = tk.StringVar()
+retrival_model_path_show = tk.StringVar()
 query_path = tk.StringVar(value=[heading.text for heading in ET.parse(setting.get()).getroot().iter('query_dataset')][0])
 target_path = tk.StringVar(value=[heading.text for heading in ET.parse(setting.get()).getroot().iter('target_dataset')][0])
 
 query_path_show = tk.StringVar(value='/' + query_path.get()+ '/')
 target_path_show =  tk.StringVar(value='/' + target_path.get()+ '/')
+retrival_model_path_show =  tk.StringVar(value='/' + retrival_model_path.get()+ '/')
 
 ttk.Label(frame_search, font=("Times New Roman",14),text="Model :").grid(row=1, column=0,sticky='wn')
 retrival_btn = tk.Button(frame_search, font=("Times New Roman",14),text="　　選取　　", command=select_retrival_model_path).grid(row=1, column=1)
-tk.Label(frame_search, textvariable=retrival_model_path, font=("Times New Roman",14)).grid(row=1, column=2,sticky='wn')
+tk.Label(frame_search, textvariable=retrival_model_path_show, font=("Times New Roman",14)).grid(row=1, column=2,sticky='wn')
 
 ttk.Label(frame_search, font=("Times New Roman",14),text="Target Database :　　").grid(row=3, column=0)
 retrival_btn = tk.Button(frame_search, font=("Times New Roman",14),text="　　選取　　", command=select_target_folder).grid(row=3, column=1)
 
-tk.Label(frame_search, font=("Times New Roman",14),textvariable=target_path).grid(row=3, column=2,sticky='wn')
+tk.Label(frame_search, font=("Times New Roman",14),textvariable=target_path_show).grid(row=3, column=2,sticky='wn')
 
 
 
 ttk.Label(frame_search, font=("Times New Roman",14),text="Query Dataset :　　").grid(row=5, column=0)
 query_btn = tk.Button(frame_search, font=("Times New Roman",14),text="　　選取　　", command=select_query_folder).grid(row=5, column=1)
-tk.Label(frame_search, font=("Times New Roman",14),textvariable=query_path).grid(row=5, column=2,sticky='wn')
+tk.Label(frame_search, font=("Times New Roman",14),textvariable=query_path_show).grid(row=5, column=2,sticky='wn')
 
 
 
